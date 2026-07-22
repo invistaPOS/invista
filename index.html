@@ -569,9 +569,9 @@ document.addEventListener('keydown',function(e){
 <script>
 // Called automatically by Paddle.js once it finishes loading
 function paddleLoaded(){
-  Paddle.Environment.set("sandbox");
+  Paddle.Environment.set("production");
   Paddle.Initialize({
-    token: "test_cccc6393ec63c6949e92970333c",
+    token: "live_92c0f059fed1c55ecd20350a841",
     eventCallback: function(data){
       console.log("Paddle event:", data.name, data);
 
@@ -614,7 +614,7 @@ function openPaddleCheckout(){
   window._paddlePaymentDone = false;
   try {
     Paddle.Checkout.open({
-      items:[{priceId:"pri_01kxjjq176xw4tpz13hd1tmp5j",quantity:1}],
+      items:[{priceId:"pri_01kwec4yn2f6mwrz1k10daza41",quantity:1}],
       settings:{
         displayMode:"overlay",
         theme:"dark",
