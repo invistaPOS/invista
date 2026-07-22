@@ -573,26 +573,68 @@ function paddleLoaded(){
   Paddle.Initialize({
     token: "test_cccc6393ec63c6949e92970333c",
     eventCallback: function(data){
-      if(data.name==="checkout.completed"){
-        var email="";
-        try { email=data.data.customer.email; } catch(err){}
-        showDownloadStep(email);
+      console.log("Paddle event:", data.name, data);
+
+      // Fire on any of these events
+      if(
+        data.name === "checkout.completed" ||
+        data.name === "checkout.payment.initiated" ||
+        data.name === "checkout.payment.selected"
+      ){
+        var email = "";
+        try { email = data.data.customer.email; } catch(e){}
+        try { email = email || data.data.items[0].price.description; } catch(e){}
+      }
+
+      if(data.name === "checkout.completed"){
+        var email = "";
+        try { email = data.data.customer.email; } catch(e){}
+        // Small delay to let Paddle finish animating
+        setTimeout(function(){
+          showDownloadStep(email);
+        }, 1500);
+      }
+
+      // Also catch checkout close after payment
+      if(data.name === "checkout.closed"){
+        // Check if payment was completed by looking at stored state
+        if(window._paddlePaymentDone){
+          showDownloadStep(window._paddleCustomerEmail || "");
+        }
       }
     }
   });
 }
 
+// Track payment completion
+window._paddlePaymentDone = false;
+window._paddleCustomerEmail = "";
+
 function openPaddleCheckout(){
+  window._paddlePaymentDone = false;
   try {
     Paddle.Checkout.open({
       items:[{priceId:"pri_01kxjjq176xw4tpz13hd1tmp5j",quantity:1}],
-      settings:{displayMode:"overlay",theme:"dark",locale:"en"}
+      settings:{
+        displayMode:"overlay",
+        theme:"dark",
+        locale:"en",
+        successUrl: window.location.origin + window.location.pathname + "?payment=success"
+      }
     });
   } catch(err){
     console.error("Paddle checkout error:", err);
     alert("Payment system is loading, please try again in a second.");
   }
 }
+
+// Fallback: show download if redirected back with ?payment=success
+window.addEventListener("load", function(){
+  if(window.location.search.indexOf("payment=success") !== -1){
+    setTimeout(function(){ showDownloadStep(""); }, 500);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+});
 </script>
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js" onload="paddleLoaded()"></script>
 
