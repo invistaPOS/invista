@@ -594,8 +594,10 @@ document.addEventListener('keydown',function(e){
 <!-- Paddle Payment -->
 <script>
 // Called automatically by Paddle.js once it finishes loading
+window._paddleReady = false;
+window._paddleInitError = "";
 function paddleLoaded(){
-  Paddle.Environment.set("production");
+  try {
   Paddle.Initialize({
     token: "live_92c0f059fed1c55ecd20350a841",
     eventCallback: function(data){
@@ -630,6 +632,11 @@ function paddleLoaded(){
       }
     }
   });
+  window._paddleReady = true;
+  } catch(e){
+    window._paddleInitError = (e && e.message) ? e.message : String(e);
+    console.error("Paddle initialize error:", e);
+  }
 }
 
 // Track payment completion
@@ -638,19 +645,27 @@ window._paddleCustomerEmail = "";
 
 function openPaddleCheckout(){
   window._paddlePaymentDone = false;
+  if(typeof Paddle === "undefined"){
+    alert("Payment system could not load (Paddle.js is blocked or offline). Please disable your ad blocker / check your connection, then refresh the page.");
+    return;
+  }
+  if(!window._paddleReady){
+    alert("Payment system failed to start" + (window._paddleInitError ? ": " + window._paddleInitError : ". Please refresh the page and try again."));
+    return;
+  }
   try {
+    var settings = { displayMode:"overlay", theme:"dark", locale:"en" };
+    // successUrl must be a real http(s) address (invalid when the page is opened as a local file)
+    if(/^https?:$/.test(window.location.protocol)){
+      settings.successUrl = window.location.origin + window.location.pathname + "?payment=success";
+    }
     Paddle.Checkout.open({
       items:[{priceId:"pri_01kwec4yn2f6mwrz1k10daza41",quantity:1}],
-      settings:{
-        displayMode:"overlay",
-        theme:"dark",
-        locale:"en",
-        successUrl: window.location.origin + window.location.pathname + "?payment=success"
-      }
+      settings: settings
     });
   } catch(err){
     console.error("Paddle checkout error:", err);
-    alert("Payment system is loading, please try again in a second.");
+    alert("Could not open checkout: " + ((err && err.message) ? err.message : err));
   }
 }
 
@@ -662,7 +677,7 @@ window.addEventListener("load", function(){
   }
 });
 </script>
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js" onload="paddleLoaded()"></script>
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js" onload="paddleLoaded()" onerror="console.error('Paddle.js failed to load')"></script>
 
 </body>
 </html>
